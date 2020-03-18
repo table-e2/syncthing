@@ -1,0 +1,2 @@
+# syncthing
+A better videosync
