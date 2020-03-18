@@ -1,0 +1,19 @@
+{
+  "name": "syncthing",
+  "version": "1.0.0",
+  "description": "A better videosync",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/table-e2/syncthing.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/table-e2/syncthing/issues"
+  },
+  "homepage": "https://github.com/table-e2/syncthing#readme"
+}
