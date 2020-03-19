@@ -1,1 +1,17 @@
-<h>upload page</h>
+
+
+<form action="/uploadVideo" enctype="multipart/form-data", method="POST" class="form">
+  <p>
+    Video file: <input type="file" name="file" id="file" accept="video/*" class="form-control-file">
+  </p>
+  <button class="btn btn-primary">Upload</button>
+</form>
+
+
+<form action = "/selectYoutube" method="POST" class="form">
+  <div class="form-group">
+    <label for="vidURL">Link to Youtube Video:</label>
+    <input type="text" class="form-control" id="vidURL" name="vidURL" placeholder="https://">
+  </div>
+  <button type="submit" class="btn btn-primary">Submit</button>
+</form>
