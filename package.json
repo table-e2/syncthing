@@ -11,9 +11,9 @@
     "scripts": {
         "start": "npm run watch",
         "serve": "npx ./dist/server.js",
-        "watch": "npm-run-all -p watch:*",
+        "watch": "npm-run-all -p watch:* | npx ./misc/empty-line-remover.js",
         "watch:serve": "nodemon ./dist/server.js --dev",
-        "watch:build": "tsc -w --sourcemap",
+        "watch:build": "tsc -w --sourcemap --pretty",
         "test": "echo \"Error: no test specified\" && exit 1",
         "build": "tsc",
         "lint": "npx eslint . --ext .js,.ts "

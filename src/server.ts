@@ -10,7 +10,7 @@ app.set('view engine', 'handlebars')
 const args = minimist(process.argv.slice(2))
 const dev = Boolean(args.dev)
 
-const port = args.port !== undefined ? Number(args.port) : 8000
+const port = Number(args.port ?? 8000)
 
 function logInfo (...args: any): void {
     console.log('[Info]', ...args)

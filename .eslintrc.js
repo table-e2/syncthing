@@ -18,6 +18,7 @@ module.exports = {
         'plugin:@typescript-eslint/recommended-requiring-type-checking',
     ],
     rules: {
-        "@typescript-eslint/indent": ["error", 4]
+        "@typescript-eslint/indent": ["warn", 4],
+        "indent": "off"
     }
 };
