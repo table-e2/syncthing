@@ -1,3 +1,24 @@
-
-
-<h>Hello world</h>
+<div class="box shadow">
+    <h1>Hello</h1>
+    <form action="/api/create" method="post">
+        <ul>
+            <li>
+                <label for="username">Username</label>
+                <input type="text" name="username" id="username">
+            </li>
+            <li>
+                <label for="url">Video url</label>
+                <input type="url" name="url" id="url">
+            </li>
+            <li>
+                <label for="password">Password</label>
+                <input type="password" name="password" id="password">
+            </li>
+            <li>
+                <label for="control_key">Control Key</label>
+                <input type="password" name="control_key" id="control_key">
+            </li>
+            <li><button type="submit">Submit</button></li>
+        </ul>
+    </form>
+</div>
