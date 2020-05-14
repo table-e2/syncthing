@@ -1,6 +1,6 @@
 :root {
-    --normal-bg: #f9f9f9;
-    --second-bg: #e6e6e6;
+    --normal-bg: #c1dde2;
+    --second-bg: #dff2f5;
     --hover-bg: rgba(0, 0, 0, 0.082);
     --shadow-c: rgba(0, 0, 0, 0.144);
     --color: #222;
@@ -14,8 +14,8 @@
 /* @media (prefers-color-scheme: light) { */
 @media (prefers-color-scheme: dark) {
     :root {
-        --normal-bg: #181818;
-        --second-bg: #252525;
+        --normal-bg: #2a363b;
+        --second-bg: #38484e;
         --hover-bg: rgba(255, 255, 255, 0.041);
         --shadow-c: rgba(0, 0, 0, 0.329);
         --color: #ddd;
