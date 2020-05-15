@@ -67,7 +67,8 @@ nav>.item:hover {
 }
 
 .box {
-    max-width: 600px;
+    min-width: 40em;
+    margin: 1em;
     border-radius: 5px;
     padding: 1em;
     background: var(--second-bg);
@@ -75,4 +76,9 @@ nav>.item:hover {
 
 .shadow {
     box-shadow: 0 0.5px 2px 2px var(--shadow-c);
+}
+
+video {
+    max-width: 100%;
+    max-height: 90vh;
 }

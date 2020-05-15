@@ -13,16 +13,24 @@ app.use(expressFormidable())
 
 app.listen(utils.port, () => {
     if (utils.devMode) {
-        utils.logInfo('Server started in dev mode')
-        utils.logInfo(`Available at http://127.0.0.1:${utils.port}`)
+        console.info('Server started in dev mode')
+        console.info(`Available at http://127.0.0.1:${utils.port}`)
     } else {
-        utils.logInfo('Server started')
+        console.info('Server started')
     }
 })
 
 // landing page
 app.get('/', (_req, resp) => {
     resp.render('home')
+})
+
+// Watch page
+app.get('/watch/:sessionId', (req, resp) => {
+    resp.render('watch', {
+        sessionIdUrl: sessionData.getSessionUrl(req.params.sessionId),
+        sessionIdTitle: sessionData.getSessionTitle(req.params.sessionId)
+    })
 })
 
 // Any static files
@@ -39,25 +47,28 @@ const sessionData = new SessionData()
 // Posts to the api (for new videos)
 app.post('/api/:type', (req, resp) => {
     utils.logPostInfo(req.params.type, req.fields, req.files)
-    if (req.fields === undefined) {
-        utils.logInfo('No data was posted')
-        resp.sendStatus(400)
-        return
-    }
     const fields = req.fields
-    if (
-        !('username' in fields && 'url' in fields && 'password' in fields && 'control_key' in fields) ||
-        typeof fields.username !== 'string' ||
-        typeof fields.url !== 'string' ||
-        typeof fields.password !== 'string' ||
-        typeof fields.control_key !== 'string'
-    ) {
-        utils.logInfo('Wrong data was posted')
+    try {
+        if (fields === undefined) {
+            console.info('No data was posted')
+            throw new Error()
+        }
+        if (utils.hasMembers(fields, ['username', 'title', 'url', 'password', 'controlKey'], 'string')) {
+            console.info('Wrong data was posted')
+            throw new Error()
+        }
+    } catch (_err) {
         resp.sendStatus(400)
         return
     }
-    const userId = sessionData.addUser(fields.username)
-    const sessionId = sessionData.addSession(fields.url, fields.password, fields.control_key)
-    utils.logDebug(`Create user id ${userId}`)
+
+    const userId = sessionData.addUser(fields.username as string)
+    const sessionId = sessionData.addSession(
+        fields.url as string,
+        fields.title as string,
+        fields.password as string,
+        fields.controlKey as string
+    )
+    console.debug(`Create user id ${userId}`)
     resp.redirect(`/watch/${sessionId}`)
 })

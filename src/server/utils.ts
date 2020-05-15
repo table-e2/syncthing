@@ -7,22 +7,12 @@ export const devMode = Boolean(args.dev)
 
 export const port = Number(args.port ?? 8000)
 
-export function logInfo (...args: any): void {
-    console.log('[Info]', ...args)
-}
-
-export function logDebug (...args: any): void {
-    if (devMode) {
-        console.log('[Debug]', ...args)
-    }
-}
-
 export function logger (
     req: express.Request,
     _resp: express.Response,
     next: express.NextFunction
 ): void {
-    logDebug(`${req.method} at ${req.url}`)
+    console.debug(`${req.method} at ${req.url}`)
     next()
 }
 
@@ -49,5 +39,14 @@ export function logPostInfo (
             }
         }
     }
-    logDebug(message)
+    console.debug(message)
+}
+
+export function hasMembers (object: {[key: string]: any}, members: string[], type?: string): boolean {
+    return members.every(member => {
+        Object.prototype.hasOwnProperty.call(object, member)
+    }) && (type === undefined ? true : members.every(member =>
+        // eslint-disable-next-line valid-typeof
+        typeof object[member] === type
+    ))
 }
