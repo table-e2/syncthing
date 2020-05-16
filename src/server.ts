@@ -79,14 +79,3 @@ app.post('/api/create', (req, resp) => {
     console.debug(`Create session with id ${sessionId}`)
     resp.redirect(`/watch/${sessionId}`)
 })
-
-const watchIdRegex = /^\w+$/.compile()
-
-app.post('/api/watch', (req, resp) => {
-    utils.logPostInfo('watch', req.fields, req.files)
-    const url = req.fields?.videoId
-    if (typeof url === 'string' && watchIdRegex.test(url)) {
-        resp.redirect(`/watch/${url}`)
-    }
-    resp.status(400)
-})

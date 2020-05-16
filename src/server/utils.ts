@@ -7,6 +7,9 @@ export const devMode = Boolean(args.dev)
 
 export const port = Number(args.port ?? 8000)
 
+/** @todo Add a real domain once one is acquired */
+export const urlBase = devMode ? `localhost:${port}` : undefined
+
 export function logger (
     req: express.Request,
     _resp: express.Response,

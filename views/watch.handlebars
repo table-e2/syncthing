@@ -3,13 +3,18 @@
 		<h1>{{{sessionIdTitle}}}</h1>
 		<video src="{{{sessionIdUrl}}}" controls title="{{{sessionIdTitle}}}" crossorigin="anonymous" preload></video>
 	{{else}}
-		<form action="/api/watch" method="post">
+		<div class="form">
 			<label for="videoId">
-				Video ID<input type="text" name="videoId">
+				Video ID<input type="text" name="videoId" id="videoId">
 			</label>
 			<div class="buttonContainer">
-				<button type="submit">Submit</button>
+				<button type="submit" id="videoIdSubmit">Submit</button>
 			</div>
-		</form>
+			<script>
+				id('videoId').addEventListener('keyup', ifKey('Enter', videoRedirect))
+				id('videoIdSubmit').addEventListener('keyup', ifKey([' ', 'Enter'], videoRedirect))
+				id('videoIdSubmit').addEventListener('click', videoRedirect)
+			</script>
+		</div>
 	{{/if}}
 </div>
