@@ -25,9 +25,16 @@ app.get('/', (_req, resp) => {
     resp.render('home')
 })
 
+app.get('/watch', (_req, resp) => {
+    resp.render('watch', {
+        hasVideo: false
+    })
+})
+
 // Watch page
 app.get('/watch/:sessionId', (req, resp) => {
     resp.render('watch', {
+        hasVideo: true,
         sessionIdUrl: sessionData.getSessionUrl(req.params.sessionId),
         sessionIdTitle: sessionData.getSessionTitle(req.params.sessionId)
     })
@@ -45,15 +52,15 @@ if (utils.devMode) {
 
 const sessionData = new SessionData()
 // Posts to the api (for new videos)
-app.post('/api/:type', (req, resp) => {
-    utils.logPostInfo(req.params.type, req.fields, req.files)
+app.post('/api/create', (req, resp) => {
+    utils.logPostInfo('create', req.fields, req.files)
     const fields = req.fields
     try {
         if (fields === undefined) {
             console.info('No data was posted')
             throw new Error()
         }
-        if (utils.hasMembers(fields, ['username', 'title', 'url', 'password', 'controlKey'], 'string')) {
+        if (utils.hasMembers(fields, ['title', 'url', 'password', 'controlKey'], 'string')) {
             console.info('Wrong data was posted')
             throw new Error()
         }
@@ -62,13 +69,24 @@ app.post('/api/:type', (req, resp) => {
         return
     }
 
-    const userId = sessionData.addUser(fields.username as string)
     const sessionId = sessionData.addSession(
         fields.url as string,
         fields.title as string,
         fields.password as string,
         fields.controlKey as string
     )
-    console.debug(`Create user id ${userId}`)
+
+    console.debug(`Create session with id ${sessionId}`)
     resp.redirect(`/watch/${sessionId}`)
+})
+
+const watchIdRegex = /^\w+$/.compile()
+
+app.post('/api/watch', (req, resp) => {
+    utils.logPostInfo('watch', req.fields, req.files)
+    const url = req.fields?.videoId
+    if (typeof url === 'string' && watchIdRegex.test(url)) {
+        resp.redirect(`/watch/${url}`)
+    }
+    resp.status(400)
 })

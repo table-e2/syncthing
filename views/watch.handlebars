@@ -1,4 +1,15 @@
 <div class="box shadow">
-	<h1>{{{sessionIdTitle}}}</h1>
-	<video src="{{{sessionIdUrl}}}" controls title="{{{sessionIdTitle}}}" crossorigin="anonymous" preload></video>
+	{{#if hasVideo}}
+		<h1>{{{sessionIdTitle}}}</h1>
+		<video src="{{{sessionIdUrl}}}" controls title="{{{sessionIdTitle}}}" crossorigin="anonymous" preload></video>
+	{{else}}
+		<form action="/api/watch" method="post">
+			<label for="videoId">
+				Video ID<input type="text" name="videoId">
+			</label>
+			<div class="buttonContainer">
+				<button type="submit">Submit</button>
+			</div>
+		</form>
+	{{/if}}
 </div>

@@ -162,16 +162,13 @@ form label {
 }
 
 .buttonContainer {
+    /* Full width */
     grid-column: 1 / -1;
     display: grid;
     gap: 0.5em;
-    justify-items: end;
+    justify-content: space-between;
 }
 
 .buttonContainer button {
     grid-row: 1
-}
-
-#test {
-    justify-self: start;
 }

@@ -1,15 +1,21 @@
 <div class="box shadow">
     <h1>Hello</h1>
     <form action="/api/create" method="post">
-        <label for="username">Username<input type="text" name="username"></label>
+        <label for="url">
+            Video url<input type="url" name="url">
+        </label>
 
-        <label for="url">Video url<input type="url" name="url"></label>
+        <label for="title">
+            Video title<input type="title" name="title">
+        </label>
 
-        <label for="title">Video title<input type="title" name="title"></label>
+        <label for="password">
+            Password<input type="password" name="password">
+        </label>
 
-        <label for="password">Password<input type="password" name="password"></label>
-
-        <label for="controlKey">Control Key<input type="password" name="controlKey"></label>
+        <label for="controlKey">
+            Control Key<input type="password" name="controlKey">
+        </label>
 
         <div class="buttonContainer">
             <button type="button" id="test">Test packet</button>
