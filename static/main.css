@@ -1,13 +1,16 @@
 :root {
     --normal-bg: #c1dde2;
     --second-bg: #dff2f5;
-    --hover-bg: rgba(0, 0, 0, 0.082);
+    --hover-bg: rgba(0, 118, 173, 0.13);
+    --active-bg: rgba(99, 182, 221, 0.13);
     --shadow-c: rgba(0, 0, 0, 0.144);
     --color: #222;
+    --hover-c: black;
     --link-c: #0000ee;
     --link-hover-c: #3c2dc0;
     --link-visited-c: #551a8b;
     --link-active-c: #ee0000;
+    --button-bg: transparent;
 }
 
 /* Uncomment for testing light theme */
@@ -16,19 +19,23 @@
     :root {
         --normal-bg: #2a363b;
         --second-bg: #38484e;
-        --hover-bg: rgba(255, 255, 255, 0.041);
-        --shadow-c: rgba(0, 0, 0, 0.329);
+        --hover-bg: rgba(255, 255, 255, 0.089);
+        --active-bg: rgba(255, 255, 255, 0.294);
+        --shadow-c: rgba(0, 0, 0, 0.212);
         --color: #ddd;
+        --hover-c: white;
         --link-c: #8d9fc8;
         --link-hover-c: #7d6cda;
         --link-visited-c: #d459d4;
         --link-active-c: #e05964;
+        --button-bg: transparent;
     }
 }
 
 body {
     margin: 0;
     font: 16px sans-serif;
+    line-height: 1.5;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -40,34 +47,73 @@ body {
     box-sizing: border-box;
 }
 
-a:not(:hover):not(:active) { text-decoration: none; }
-a { color: var(--link-c); }
-a:hover { color: var(--link-hover-c) }
-a:visited { color: var(--link-visited-c) }
-a:active { color: var(--link-active-c) }
+a:not(:hover):not(:active) {
+    text-decoration: none;
+}
 
+a {
+    color: var(--link-c);
+}
+
+a:hover {
+    color: var(--link-hover-c)
+}
+
+a:visited {
+    color: var(--link-visited-c)
+}
+
+a:active {
+    color: var(--link-active-c)
+}
+
+/*  If this needs nesting
+    https://moderncss.dev/css-only-accessible-dropdown-navigation-menu/ */
 nav {
     width: 100%;
-    display: flex;
-    align-items: stretch;
     background: var(--second-bg);
     z-index: 7;
     margin-bottom: 1em;
-    font-weight: bold;
+    --link-c: var(--color);
+    --link-hover-c: var(--hover-c);
 }
 
-nav>.item {
-    padding: 1em;
+nav>ul {
+    display: flex;
+    align-items: stretch;
+    font-weight: bold;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+/* nav>ul>li:first-child {
+    border-left: thin solid var(--hover-bg);
+} */
+
+nav>ul>li {
     border-right: thin solid var(--hover-bg);
+    display: grid;
+}
+
+nav>ul>li>a {
+    padding: 1em;
     background-clip: padding-box;
     text-decoration: none;
 }
-nav>.item:hover {
+
+nav>ul>li>a:hover {
     background-color: var(--hover-bg);
+    color: var(--link-hover-c);
+}
+
+nav>ul>li>a:visited:not(:hover) {
+    color: var(--link-c);
 }
 
 .box {
-    min-width: 40em;
+    width: 40em;
+    max-width: calc(100% - 2em);
     margin: 1em;
     border-radius: 5px;
     padding: 1em;
@@ -81,4 +127,51 @@ nav>.item:hover {
 video {
     max-width: 100%;
     max-height: 90vh;
+    border-radius: 4px;
+}
+
+button, input {
+    background: var(--button-bg);
+    color: var(--color);
+    border: 2px solid var(--hover-bg);
+    border-radius: 4px;
+    font: inherit;
+    padding: 0.5em 1em;
+    min-width: 10em;
+}
+
+input:focus {
+    border-color: currentColor;
+}
+
+button:hover, button:focus {
+    background: var(--hover-bg);
+    background-clip: padding-box;
+    color: var(--hover-c)
+}
+
+form {
+    display: grid;
+    gap: 1em 2em;
+    grid-template-columns: repeat(auto-fit, minmax(15em, 1fr));
+}
+
+form label {
+    display: flex;
+    flex-direction: column;
+}
+
+.buttonContainer {
+    grid-column: 1 / -1;
+    display: grid;
+    gap: 0.5em;
+    justify-items: end;
+}
+
+.buttonContainer button {
+    grid-row: 1
+}
+
+#test {
+    justify-self: start;
 }
