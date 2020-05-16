@@ -11,6 +11,7 @@
     --link-visited-c: #551a8b;
     --link-active-c: #ee0000;
     --button-bg: transparent;
+    --input-invalid-bc: #c32e00;
 }
 
 /* Uncomment for testing light theme */
@@ -142,6 +143,14 @@ button, input {
 
 input:focus {
     border-color: currentColor;
+}
+
+input:invalid:not(:focus) {
+    border-color: var(--input-invalid-bc);
+}
+
+input:invalid {
+    box-shadow: none;
 }
 
 button:hover, button:focus {
