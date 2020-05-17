@@ -28,7 +28,7 @@ function testPost (): void {
             body: form,
             method: 'post'
         }
-    ).then((resp) => {
+    ).then(resp => {
         console.log('Sent test form')
         if (resp.redirected) {
             window.location.assign(resp.url)
@@ -36,6 +36,30 @@ function testPost (): void {
     }).catch(() => {
         console.log('Failed to send test form')
     })
+}
+
+function startWs (sessionId: string): void {
+    document.body.classList.remove('disconnected')
+    const ws = new WebSocket(`ws://${window.location.host}/ws/connection`)
+    ws.addEventListener('open', () => {
+        ws.send('hello')
+    })
+    ws.addEventListener('message', wsReceive(sessionId))
+    ws.addEventListener('close', closeEvent => {
+        console.error(`Websocket event closed with status ${closeEvent.code}`)
+        document.body.classList.add('disconnected')
+    })
+}
+
+/**
+ * Video control handling
+ * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/video#Events
+ */
+
+function wsReceive (sessionId: string): (msg: MessageEvent) => void {
+    return msg => {
+        console.log(`[${sessionId}] ${JSON.stringify(msg.data)}`)
+    }
 }
 
 function ifKey (keys: string[] | string, callback: () => void): (event: KeyboardEvent) => void {
@@ -59,7 +83,6 @@ function videoRedirect (): void {
     const loc = window.location
     const newLoc = `${loc.protocol}//${loc.host}/watch/${(id('videoId') as HTMLInputElement).value}`
     window.location.assign(newLoc)
-    sleep(5000).then(() => {}, () => {})
 }
 
 // Things to run on load

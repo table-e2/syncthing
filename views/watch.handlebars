@@ -1,7 +1,11 @@
 <div class="box shadow">
-	{{#if hasVideo}}
-		<h1>{{{sessionIdTitle}}}</h1>
-		<video src="{{{sessionIdUrl}}}" controls title="{{{sessionIdTitle}}}" crossorigin="anonymous" preload></video>
+	{{#if hasVideo }}
+		<h1>{{{ sessionTitle }}}</h1>
+		<video src="{{{ sessionUrl }}}" controls title="{{{ sessionIdTitle }}}" crossorigin="anonymous" preload
+			id="syncVideo"></video>
+		<script>
+			window.addEventListener('load', () => startWs('{{{ sessionId }}}'))
+		</script>
 	{{else}}
 		<div class="form">
 			<label for="videoId">

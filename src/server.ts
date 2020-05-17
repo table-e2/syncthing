@@ -3,8 +3,11 @@ import handlebars from 'express-handlebars'
 import expressFormidable from 'express-formidable'
 import * as utils from './server/utils'
 import { SessionData } from './server/sessionData'
+import expressWebsocket from 'express-ws'
 
 const app = express()
+expressWebsocket(app)
+
 app.engine('handlebars', handlebars())
 app.set('view engine', 'handlebars')
 
@@ -25,6 +28,7 @@ app.get('/', (_req, resp) => {
     resp.render('home')
 })
 
+// Empty watch page
 app.get('/watch', (_req, resp) => {
     resp.render('watch', {
         hasVideo: false
@@ -35,8 +39,9 @@ app.get('/watch', (_req, resp) => {
 app.get('/watch/:sessionId', (req, resp) => {
     resp.render('watch', {
         hasVideo: true,
-        sessionIdUrl: sessionData.getSessionUrl(req.params.sessionId),
-        sessionIdTitle: sessionData.getSessionTitle(req.params.sessionId)
+        sessionId: req.params.sessionId,
+        sessionUrl: sessionData.getSessionUrl(req.params.sessionId),
+        sessionTitle: sessionData.getSessionTitle(req.params.sessionId)
     })
 })
 
@@ -79,3 +84,14 @@ app.post('/api/create', (req, resp) => {
     console.debug(`Create session with id ${sessionId}`)
     resp.redirect(`/watch/${sessionId}`)
 })
+
+// Video connection manager
+const wsRouter = express.Router()
+wsRouter.ws('/connection', (ws, _req) => {
+    ws.on('message', (msg) => {
+        console.log(msg)
+        ws.send(msg)
+    })
+})
+
+app.use('/ws', wsRouter)

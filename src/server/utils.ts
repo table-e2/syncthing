@@ -46,9 +46,9 @@ export function logPostInfo (
 }
 
 export function hasMembers (object: {[key: string]: any}, members: string[], type?: string): boolean {
-    return members.every(member => {
+    return members.every(member =>
         Object.prototype.hasOwnProperty.call(object, member)
-    }) && (type === undefined ? true : members.every(member =>
+    ) && (type === undefined ? true : members.every(member =>
         // eslint-disable-next-line valid-typeof
         typeof object[member] === type
     ))
