@@ -85,7 +85,40 @@ app.post('/api/create', (req, resp) => {
     resp.redirect(`/watch/${sessionId}`)
 })
 
-// Video connection manager
+/**
+ * # Video synchronization manager
+ *
+ * In order to get an estimate of latency, the client requests a 4-part ping handshake as follows:
+ *
+ * ```text
+ * +--------+ +-------+             +--------+
+ * |        | | ping1 | ----------> |        |
+ * |        | | ID    |             |        |
+ * |        | +-------+   +-------+ |        |
+ * |        |             | ping2 | |        |
+ * |        | <---------- | ID    | |        |
+ * |        |             | time  | |        |
+ * | Client | +-------+   +-------+ | Server |
+ * |        | | ping3 | ----------> |        |
+ * |        | | ID    |             |        |
+ * |        | +-------+   +-------+ |        |
+ * |        |             | ping4 | |        |
+ * |        | <---------- | ID    | |        |
+ * |        |             | time  | |        |
+ * +--------+             +-------+ +--------+
+ * ```
+ *
+ * Client messages should include a request ID (any non-duplicate number will do). Server messages
+ * should include the ID of the client request as well as the server time.
+ *
+ * This is done because in at least [Firefox][1], the precision of `DOMHighResTimeStamp` can be
+ * 100ms or higher, which is too high to sync videos that are, for example, playing on devices in
+ * the same room (they will look noticeably staggered). The latency measure may still not be enough
+ * to synchronize videos beyond what a human can discern (especially audio), but this should be
+ * closer than client timestamps.
+ *
+ * [1]: https://developer.mozilla.org/en-US/docs/Web/API/DOMHighResTimeStamp#Reduced_time_precision
+ * */
 const wsRouter = express.Router()
 wsRouter.ws('/connection', (ws, _req) => {
     ws.on('message', (msg) => {

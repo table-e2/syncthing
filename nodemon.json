@@ -1,3 +1,4 @@
 {
-	"watch": ["dist"]
+    "watch": ["dist"],
+    "ignore": ["dist/client.js", "dist/client"]
 }

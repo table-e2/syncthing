@@ -38,6 +38,29 @@ function testPost (): void {
     })
 }
 
+function ifKey (keys: string[] | string, callback: () => void): (event: KeyboardEvent) => void {
+    if (typeof keys === 'string') {
+        return (event: KeyboardEvent) => {
+            if (event.key === keys) {
+                callback()
+            }
+        }
+    }
+
+    const keysSet = new Set(keys)
+    return (event: KeyboardEvent) => {
+        if (keysSet.has(event.key)) {
+            callback()
+        }
+    }
+}
+
+function videoRedirect (): void {
+    const loc = window.location
+    const newLoc = `${loc.protocol}//${loc.host}/watch/${(id('videoId') as HTMLInputElement).value}`
+    window.location.assign(newLoc)
+}
+
 function startWs (sessionId: string): void {
     document.body.classList.remove('disconnected')
     const ws = new WebSocket(`ws://${window.location.host}/ws/connection`)
@@ -62,31 +85,48 @@ function wsReceive (sessionId: string): (msg: MessageEvent) => void {
     }
 }
 
-function ifKey (keys: string[] | string, callback: () => void): (event: KeyboardEvent) => void {
-    if (typeof keys === 'string') {
-        return (event: KeyboardEvent) => {
-            if (event.key === keys) {
-                callback()
-            }
-        }
-    }
+type SyncState = 'play' | 'pause'
 
-    const keysSet = new Set(keys)
-    return (event: KeyboardEvent) => {
-        if (keysSet.has(event.key)) {
-            callback()
-        }
+interface SyncMessage {
+    state: SyncState
+    timeStamp: number
+}
+
+function eventToMessage (elem: HTMLMediaElement, event: Event): SyncMessage | void {
+    let state: SyncState
+    switch (event.type) {
+        case 'play':
+        case 'pause':
+            state = event.type
+            break
+        case 'seeked':
+            state = elem.paused ? 'pause' : 'play'
+            break
+        default:
+            console.warn('Unknown event:', event)
+            return
+    }
+    return {
+        state,
+        timeStamp: elem.currentTime
     }
 }
 
-function videoRedirect (): void {
-    const loc = window.location
-    const newLoc = `${loc.protocol}//${loc.host}/watch/${(id('videoId') as HTMLInputElement).value}`
-    window.location.assign(newLoc)
+function wsSend (elem: HTMLMediaElement): (event: Event) => void {
+    return event => {
+        console.debug('Event:', eventToMessage(elem, event) ?? 'unknown event')
+    }
 }
 
 // Things to run on load
 async function main (): Promise<void> {
+    const syncVideo = id('syncVideo') as HTMLMediaElement | null
+    if (syncVideo !== null) {
+        for (const handler of ['play', 'pause', 'seeked']) {
+            syncVideo.addEventListener(handler, wsSend(syncVideo))
+        }
+    }
+
     await sleep(1000)
 
     document.body.classList.remove('loading')
@@ -94,9 +134,9 @@ async function main (): Promise<void> {
 
 function mainSync (): void {
     main().then((_val) => {
-        console.log('Main loaded')
+        console.info('Main loaded')
     }).catch(err => {
-        console.log(`Main failed with ${String(err)}`)
+        console.error(`Main failed with ${String(err)}`)
     })
 }
 
