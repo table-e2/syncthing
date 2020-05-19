@@ -2,10 +2,7 @@
 	{{#if hasVideo }}
 		<h1>{{{ sessionTitle }}}</h1>
 		<video src="{{{ sessionUrl }}}" controls title="{{{ sessionIdTitle }}}" crossorigin="anonymous" preload
-			id="syncVideo"></video>
-		<script>
-			window.addEventListener('load', () => startWs('{{{ sessionId }}}'))
-		</script>
+			id="syncVideo" data-session-id="{{{ sessionId }}}"></video>
 	{{else}}
 		<div class="form">
 			<label for="videoId">

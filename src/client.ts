@@ -61,19 +61,6 @@ function videoRedirect (): void {
     window.location.assign(newLoc)
 }
 
-function startWs (sessionId: string): void {
-    document.body.classList.remove('disconnected')
-    const ws = new WebSocket(`ws://${window.location.host}/ws/connection`)
-    ws.addEventListener('open', () => {
-        ws.send('hello')
-    })
-    ws.addEventListener('message', wsReceive(sessionId))
-    ws.addEventListener('close', closeEvent => {
-        console.error(`Websocket event closed with status ${closeEvent.code}`)
-        document.body.classList.add('disconnected')
-    })
-}
-
 /**
  * Video control handling
  * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/video#Events
@@ -90,6 +77,18 @@ type SyncState = 'play' | 'pause'
 interface SyncMessage {
     state: SyncState
     timeStamp: number
+}
+
+class SyncConnection {
+    elem: HTMLMediaElement
+    socket: WebSocket
+    sessionId: string
+
+    constructor (elem: HTMLMediaElement, socket: WebSocket, sessionId: string) {
+        this.elem = elem
+        this.socket = socket
+        this.sessionId = sessionId
+    }
 }
 
 function eventToMessage (elem: HTMLMediaElement, event: Event): SyncMessage | void {
@@ -112,22 +111,57 @@ function eventToMessage (elem: HTMLMediaElement, event: Event): SyncMessage | vo
     }
 }
 
-function wsSend (elem: HTMLMediaElement): (event: Event) => void {
+function wsSend (conn: SyncConnection): (event: Event) => void {
     return event => {
-        console.debug('Event:', eventToMessage(elem, event) ?? 'unknown event')
+        console.debug('Event:', eventToMessage(conn.elem, event) ?? 'unknown event')
+    }
+}
+
+async function startWs (): Promise<SyncConnection> {
+    // Get the video element
+    const syncVideo = id('syncVideo')
+    // Get the session id
+    const sessionId = syncVideo?.dataset?.sessionId
+    // Check if both exist
+    if (!(syncVideo instanceof HTMLMediaElement)) {
+        return await Promise.reject(Error('No video present'))
+    }
+    if (sessionId === undefined) {
+        return await Promise.reject(Error('No sessionId present'))
+    }
+
+    // Create a websocket and wait for it to be connected
+    const openWs = await new Promise<WebSocket>((resolve) => {
+        const ws = new WebSocket(`ws://${window.location.host}/ws/connection`)
+        // What to do if it ever closes
+        ws.addEventListener('close', (event) => {
+            console.error('Websocket disconnected with code ', event.code)
+            document.body.classList.add('disconnected')
+        })
+        // Return the created websocket
+        ws.addEventListener('open', function () { resolve(this) })
+    })
+
+    // If we were disconnected before, we aren't anymore
+    document.body.classList.remove('disconnected')
+    return new SyncConnection(syncVideo, openWs, sessionId)
+}
+
+function initWs (conn: SyncConnection): void {
+    // Add event listeners for all types of video control actions
+    // @todo: Find out if these stick around when it disconnects, and if so, remove them when
+    // that happens.
+    for (const eventType of ['play', 'pause', 'seeked']) {
+        conn.elem.addEventListener(eventType, wsSend(conn))
     }
 }
 
 // Things to run on load
 async function main (): Promise<void> {
-    const syncVideo = id('syncVideo') as HTMLMediaElement | null
-    if (syncVideo !== null) {
-        for (const handler of ['play', 'pause', 'seeked']) {
-            syncVideo.addEventListener(handler, wsSend(syncVideo))
-        }
-    }
-
-    await sleep(1000)
+    await startWs().then(
+        initWs,
+        (reason) => { console.debug(reason) }
+    )
 
     document.body.classList.remove('loading')
 }
