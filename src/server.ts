@@ -85,6 +85,28 @@ app.post('/api/create', (req, resp) => {
     resp.redirect(`/watch/${sessionId}`)
 })
 
+type ClientMessage = ClientSyncMessage | ClientIdRequestMessage | PingRequestMessage
+
+type SyncState = 'play' | 'pause'
+
+interface ClientSyncMessage {
+    type: 'sync'
+    state: SyncState
+    timeStamp: number
+    origin: string
+}
+
+interface ClientIdRequestMessage {
+    type: 'clientId'
+}
+
+interface PingRequestMessage {
+    type: 'ping'
+    iteration: number
+    id: string
+    clientId: string
+}
+
 /**
  * # Video synchronization manager
  *
@@ -121,9 +143,55 @@ app.post('/api/create', (req, resp) => {
  * */
 const wsRouter = express.Router()
 wsRouter.ws('/connection', (ws, _req) => {
-    ws.on('message', (msg) => {
-        console.log(msg)
-        ws.send(msg)
+    ws.on('message', (rawMsg) => {
+        let message: ClientMessage
+        console.log(rawMsg)
+        if (typeof rawMsg !== 'string') {
+            console.error('ws got data that isn\'t a string')
+            return
+        }
+        try {
+            message = JSON.parse(rawMsg)
+        } catch (error) {
+            console.error('ws got data that isn\'t json:', rawMsg)
+            return
+        }
+
+        switch (message.type) {
+            case 'sync':
+                /** @todo */
+                break
+            case 'ping':
+                switch (message.iteration) {
+                    case 1:
+                    case 3: {
+                        const time = sessionData.getUser(message.clientId)?.joinTime
+                        if (time === undefined) {
+                            console.error('User not in database:', message.clientId)
+                            return
+                        }
+                        ws.send(JSON.stringify({
+                            type: 'ping',
+                            id: message.id,
+                            iteration: message.iteration + 1,
+                            time: Date.now() - time.getMilliseconds()
+                        }))
+                        break
+                    }
+                    default:
+                        console.error('Unexpected ping iteration:', message)
+                }
+                break
+            case 'clientId':
+                ws.send(JSON.stringify({
+                    type: 'clientId',
+                    clientId: sessionData.addUser('username')
+                }))
+                break
+
+            default:
+                break
+        }
     })
 })
 

@@ -11,6 +11,7 @@ export interface Session {
 export interface User {
     username: string
     sessions: Set<string>
+    joinTime: Date
 }
 /**
  * This stores a volatile copy of data for all active sessions.
@@ -30,9 +31,14 @@ export class SessionData {
         const userId = crypto.randomBytes(8).toString('hex')
         this._users[userId] = {
             username,
-            sessions: new Set()
+            sessions: new Set(),
+            joinTime: new Date()
         }
         return userId
+    }
+
+    getUser (userId: string): User | undefined {
+        return this._users[userId]
     }
 
     addSession (url: string, title: string, password: string, controlKey: string): string {
