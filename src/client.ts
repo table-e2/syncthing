@@ -71,6 +71,7 @@ interface SyncMessage {
     state: SyncState
     timeStamp: number
     origin: string
+    event: string
 }
 
 /**
@@ -102,14 +103,16 @@ class SyncConnection {
     socket: WebSocket
     sessionId: string
     pingTimes: number[]
-    pingInProgress: [string, ((ping: number) => void), number | undefined] | undefined
+    pingInProgress: [string, ((ping: number) => void), number | void] | undefined
     clientId: string | (() => void) | undefined
+    syncing: boolean
 
     constructor (elem: HTMLMediaElement, socket: WebSocket, sessionId: string) {
         this.elem = elem
         this.socket = socket
         this.sessionId = sessionId
         this.pingTimes = []
+        this.syncing = false
     }
 
     async initWs (): Promise<void> {
@@ -126,11 +129,32 @@ class SyncConnection {
         }
         console.info(`Average ping: ${this.avgPing()}ms`)
 
+        // Check ping every 10 seconds
+        setInterval(() => {
+            this.measurePing().then(ping =>
+                console.info(`Ping: ${ping}ms (${this.avgPing()}ms avg)`)
+            ).catch(e =>
+                console.error('Couldn\'t measure ping', e)
+            )
+        }, 10_000)
+
         // Add event listeners for all types of video control actions
-        // @todo: Find out if these stick around when it disconnects, and if so, remove them when
+        // @todo Find out if these stick around when it disconnects, and if so, remove them when
         // that happens.
+        let timeout: NodeJS.Timeout | void
+        // Debounce the calls so messages aren't spammed
+        const debounce = (event: Event): void => {
+            if (timeout !== undefined) {
+                clearTimeout(timeout)
+            }
+            timeout = setTimeout(() => {
+                timeout = undefined
+
+                this.wsSend(event)
+            }, 250)
+        }
         for (const eventType of ['play', 'pause', 'seeked']) {
-            this.elem.addEventListener(eventType, event => this.wsSend(event))
+            this.elem.addEventListener(eventType, debounce)
         }
     }
 
@@ -138,7 +162,8 @@ class SyncConnection {
         return await new Promise<void>(resolve => {
             this.clientId = resolve
             this.socket.send(JSON.stringify({
-                type: 'clientId'
+                type: 'clientId',
+                sessionId: this.sessionId
             }))
             // This promise is resolved by this.wsReceive
         })
@@ -169,12 +194,19 @@ class SyncConnection {
         // The rest of this is handled by this.wsReceive
     }
 
+    /** Calculates the average ping minus the highest values */
     avgPing (): number {
-        return this.pingTimes.reduce((a, b) => a + b, 0) / this.pingTimes.length
+        const temp = this.pingTimes.slice()
+        temp.sort((a, b) => a - b)
+        for (let i = 0; i < temp.length / 4; i++) {
+            temp.pop()
+        }
+        return temp.reduce((acc, item) => acc + item) / temp.length
     }
 
     addPing (ping: number): void {
-        while (this.pingTimes.length > 2) {
+        // Keep 8 pings in storage for computing average
+        while (this.pingTimes.length > 8) {
             this.pingTimes.shift()
         }
         this.pingTimes.push(ping)
@@ -182,35 +214,52 @@ class SyncConnection {
 
     eventToMessage (event: Event): SyncMessage | void {
         // Check if the event originated from the user or from JavaScript. If the event
-        // came from JavaScript, forget it.
-        if (!event.isTrusted) {
+        // came from JavaScript, forget it. Notably, when the video resumes after buffering,
+        // this will be true.
+        if (this.syncing) {
             return
         }
+
         let state: SyncState
+        if (this.elem.paused || this.elem.readyState < HTMLMediaElement.HAVE_FUTURE_DATA) {
+            state = 'pause'
+        } else {
+            state = 'play'
+        }
+
+        let timeStamp = this.elem.currentTime
         switch (event.type) {
             case 'play':
-            case 'pause':
-                state = event.type
+                timeStamp += this.avgPing()
                 break
+            case 'pause':
             case 'seeked':
-                state = this.elem.paused ? 'pause' : 'play'
                 break
             default:
                 console.warn('Unknown event:', event)
                 return
         }
 
+        // We don't have a client id apparently
+        if (typeof this.clientId !== 'string') {
+            console.error('No client id')
+            return
+        }
+
         return {
             type: 'sync',
             state,
-            timeStamp: this.elem.currentTime,
-            origin: typeof this.clientId === 'string' ? this.clientId : 'no client id'
+            timeStamp,
+            origin: this.clientId,
+            event: event.type
         }
     }
 
-    /** @todo Implement video control behavior */
     wsSend (event: Event): void {
-        console.debug('Event:', this.eventToMessage(event) ?? 'unknown event')
+        const message = this.eventToMessage(event)
+        if (message !== undefined) {
+            this.socket.send(JSON.stringify(message))
+        }
     }
 
     wsReceive (event: MessageEvent): void {
@@ -221,7 +270,6 @@ class SyncConnection {
             console.error('Could not parse websocket message:', event.data)
             return
         }
-        console.debug('Received message:', message)
         switch (message.type) {
             case undefined:
                 return
@@ -237,7 +285,7 @@ class SyncConnection {
                 // If there isn't one in progress or the one in progress isn't the one we
                 // started (another one was started in the meantime I guess), then ignore.
                 if (this.pingInProgress === undefined || this.pingInProgress[0] !== message.id) {
-                    console.debug('Discarded duplicate ping')
+                    console.warn('Discarded duplicate ping')
                     return
                 }
                 const iter = message.iteration
@@ -265,8 +313,32 @@ class SyncConnection {
                 }
                 break
             }
+            case 'sync':
+                this.syncing = true
+                switch (message.state) {
+                    case 'pause':
+                        this.elem.currentTime = message.timeStamp
+                        this.elem.pause()
+                        setTimeout(() => {
+                            this.syncing = false
+                        }, 500)
+                        break
+                    case 'play':
+                        this.elem.currentTime = message.timeStamp - this.avgPing()
+                        this.elem.play().then(() => {
+                            setTimeout(() => {
+                                this.syncing = false
+                            }, 500)
+                        }).catch(e => console.error('Couldn\'t play video:', e))
+                        break
+                    default:
+                        console.error('Unexpected state:', message.state)
+                        this.syncing = false
+                        break
+                }
+                break
             default:
-                console.error('Unknown message type:', message.type)
+                console.error('Unknown message type:', (message as any).type)
                 break
         }
     }

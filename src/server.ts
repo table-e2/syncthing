@@ -98,6 +98,7 @@ interface ClientSyncMessage {
 
 interface ClientIdRequestMessage {
     type: 'clientId'
+    sessionId: string
 }
 
 interface PingRequestMessage {
@@ -145,7 +146,6 @@ const wsRouter = express.Router()
 wsRouter.ws('/connection', (ws, _req) => {
     ws.on('message', (rawMsg) => {
         let message: ClientMessage
-        console.log(rawMsg)
         if (typeof rawMsg !== 'string') {
             console.error('ws got data that isn\'t a string')
             return
@@ -158,9 +158,30 @@ wsRouter.ws('/connection', (ws, _req) => {
         }
 
         switch (message.type) {
-            case 'sync':
-                /** @todo */
+            case 'sync': {
+                const sessionString = sessionData.getUser(message.origin)?.session
+                const session = sessionString === undefined ? undefined : sessionData.getSession(sessionString)
+                if (session === undefined) {
+                    console.error('Unknown session:', sessionString)
+                    return
+                }
+                for (const userString of session.users) {
+                    if (userString === message.origin) {
+                        continue
+                    }
+                    const user = sessionData.getUser(userString)
+                    if (user === undefined) {
+                        console.error('Unknown user:', userString)
+                        return
+                    }
+                    if (user.socket.readyState === 1) {
+                        user.socket.send(rawMsg)
+                    } else {
+                        console.warn('user socket not ready', user.socket.readyState)
+                    }
+                }
                 break
+            }
             case 'ping':
                 switch (message.iteration) {
                     case 1:
@@ -174,7 +195,7 @@ wsRouter.ws('/connection', (ws, _req) => {
                             type: 'ping',
                             id: message.id,
                             iteration: message.iteration + 1,
-                            time: Date.now() - time.getMilliseconds()
+                            time: Date.now() - time.getTime()
                         }))
                         break
                     }
@@ -182,13 +203,19 @@ wsRouter.ws('/connection', (ws, _req) => {
                         console.error('Unexpected ping iteration:', message)
                 }
                 break
-            case 'clientId':
+            case 'clientId': {
+                if (sessionData.getSession(message.sessionId) === undefined) {
+                    console.warn('No session named', message.sessionId)
+                    return
+                }
+                const userId = sessionData.addUser('username', message.sessionId, ws)
+                sessionData.addUserToSession(userId, message.sessionId)
                 ws.send(JSON.stringify({
                     type: 'clientId',
-                    clientId: sessionData.addUser('username')
+                    clientId: userId
                 }))
                 break
-
+            }
             default:
                 break
         }

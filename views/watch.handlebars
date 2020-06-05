@@ -2,7 +2,7 @@
 	{{#if hasVideo }}
 		<h1>{{{ sessionTitle }}}</h1>
 		<video src="{{{ sessionUrl }}}" controls title="{{{ sessionIdTitle }}}" crossorigin="anonymous" preload
-			id="syncVideo" data-session-id="{{{ sessionId }}}"></video>
+			id="syncVideo" data-session-id="{{{ sessionId }}}" muted></video>
 	{{else}}
 		<div class="form">
 			<label for="videoId">

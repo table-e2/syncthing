@@ -1,4 +1,6 @@
 import crypto from 'crypto'
+// Note: this shadows the std WebSocket, which is for clients
+import WebSocket from 'ws'
 
 export interface Session {
     url: string
@@ -10,8 +12,9 @@ export interface Session {
 
 export interface User {
     username: string
-    sessions: Set<string>
+    session: string
     joinTime: Date
+    socket: WebSocket
 }
 /**
  * This stores a volatile copy of data for all active sessions.
@@ -27,12 +30,13 @@ export class SessionData {
         this._sessions = {}
     }
 
-    addUser (username: string): string {
+    addUser (username: string, session: string, socket: WebSocket): string {
         const userId = crypto.randomBytes(8).toString('hex')
         this._users[userId] = {
             username,
-            sessions: new Set(),
-            joinTime: new Date()
+            session,
+            joinTime: new Date(),
+            socket
         }
         return userId
     }
@@ -59,6 +63,12 @@ export class SessionData {
         }
         this._sessions[sessionId].users.add(userId)
         return true
+    }
+
+    getSession (sessionId: string): Session | void {
+        if (sessionId in this._sessions) {
+            return this._sessions[sessionId]
+        }
     }
 
     getSessionUrl (sessionId: string): string | undefined {
