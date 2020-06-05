@@ -40,8 +40,8 @@ app.get('/watch/:sessionId', (req, resp) => {
     resp.render('watch', {
         hasVideo: true,
         sessionId: req.params.sessionId,
-        sessionUrl: sessionData.getSessionUrl(req.params.sessionId),
-        sessionTitle: sessionData.getSessionTitle(req.params.sessionId)
+        sessionUrl: sessionData.getSession(req.params.sessionId)?.url,
+        sessionTitle: sessionData.getSession(req.params.sessionId)?.title
     })
 })
 
@@ -94,6 +94,7 @@ interface ClientSyncMessage {
     state: SyncState
     timeStamp: number
     origin: string
+    session: string
 }
 
 interface ClientIdRequestMessage {
@@ -159,27 +160,35 @@ wsRouter.ws('/connection', (ws, _req) => {
 
         switch (message.type) {
             case 'sync': {
-                const sessionString = sessionData.getUser(message.origin)?.session
-                const session = sessionString === undefined ? undefined : sessionData.getSession(sessionString)
+                const session = sessionData.getSession(message.session)
                 if (session === undefined) {
-                    console.error('Unknown session:', sessionString)
+                    console.warn('No session with this ID:', message.session)
                     return
                 }
-                for (const userString of session.users) {
-                    if (userString === message.origin) {
-                        continue
+                switch (message.state) {
+                    case 'play': {
+                        const newPlayFrom = Date.now() - message.timeStamp
+                        // If the time is within 500ms of the recorded time, ignore it
+                        if (session.state === 'play' && Math.abs(newPlayFrom - session.playFrom) < 500) {
+                            return
+                        }
+                        session.playFrom = newPlayFrom
+                        session.state = 'play'
+                        break
                     }
-                    const user = sessionData.getUser(userString)
-                    if (user === undefined) {
-                        console.error('Unknown user:', userString)
-                        return
-                    }
-                    if (user.socket.readyState === 1) {
-                        user.socket.send(rawMsg)
-                    } else {
-                        console.warn('user socket not ready', user.socket.readyState)
-                    }
+                    case 'pause':
+                        // Pause has no latency adjustment, so the timestamp will be the same
+                        // regardless of ping.
+                        if (session.state === 'pause' && session.playFrom === message.timeStamp) {
+                            return
+                        }
+                        session.playFrom = message.timeStamp
+                        session.state = 'pause'
+                        break
+                    default:
+                        console.error('Unexpected state:', message)
                 }
+                sessionData.sendAll(message.session, message, message.origin)
                 break
             }
             case 'ping':
@@ -204,7 +213,8 @@ wsRouter.ws('/connection', (ws, _req) => {
                 }
                 break
             case 'clientId': {
-                if (sessionData.getSession(message.sessionId) === undefined) {
+                const session = sessionData.getSession(message.sessionId)
+                if (session === undefined) {
                     console.warn('No session named', message.sessionId)
                     return
                 }
@@ -213,6 +223,13 @@ wsRouter.ws('/connection', (ws, _req) => {
                 ws.send(JSON.stringify({
                     type: 'clientId',
                     clientId: userId
+                }))
+                ws.send(JSON.stringify({
+                    type: 'sync',
+                    state: session.state,
+                    timeStamp: session.state === 'play' ? Date.now() - session.playFrom : session.playFrom,
+                    origin: '',
+                    session: message.sessionId
                 }))
                 break
             }

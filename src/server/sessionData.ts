@@ -2,12 +2,19 @@ import crypto from 'crypto'
 // Note: this shadows the std WebSocket, which is for clients
 import WebSocket from 'ws'
 
+/**
+ * `state` is the server's version of the video's state. `playFrom` is the video timestamp when
+ * `state` is `'pause'`, or current unix timestamp minus video timestamp when `state`
+ * is `'play'`.
+ */
 export interface Session {
     url: string
     title: string
     password: string
     controlKey: string
     users: Set<string>
+    state: 'play' | 'pause'
+    playFrom: number
 }
 
 export interface User {
@@ -52,7 +59,9 @@ export class SessionData {
             title,
             password,
             controlKey,
-            users: new Set()
+            users: new Set(),
+            state: 'pause',
+            playFrom: 0
         }
         return sessionId
     }
@@ -65,17 +74,22 @@ export class SessionData {
         return true
     }
 
-    getSession (sessionId: string): Session | void {
+    getSession (sessionId: string): Session | undefined {
         if (sessionId in this._sessions) {
             return this._sessions[sessionId]
         }
     }
 
-    getSessionUrl (sessionId: string): string | undefined {
-        return this._sessions[sessionId]?.url
-    }
-
-    getSessionTitle (sessionId: string): string | undefined {
-        return this._sessions[sessionId]?.title
+    sendAll (sessionId: string, message: {} | string, norepeat: string): void {
+        if (typeof message !== 'string') {
+            message = JSON.stringify(message)
+        }
+        for (const user of this._sessions[sessionId].users) {
+            const socket = this._users[user].socket
+            if (socket.readyState !== 1 || user === norepeat) {
+                continue
+            }
+            socket.send(message)
+        }
     }
 }
